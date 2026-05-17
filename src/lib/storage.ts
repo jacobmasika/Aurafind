@@ -9,6 +9,9 @@ import {
 
 const STORE_PATH = path.resolve(process.cwd(), "data", "store.json");
 
+// Only enable file-backed storage in development or when explicitly requested.
+const FILE_STORE_ENABLED = process.env.NODE_ENV === "development" || process.env.USE_FILE_STORE === "true";
+
 interface DataStore {
   reports: MissingReport[];
   sightings: SightingReport[];
@@ -24,6 +27,7 @@ let store: DataStore = {
 };
 
 function loadStore() {
+  if (!FILE_STORE_ENABLED) return;
   try {
     if (fs.existsSync(STORE_PATH)) {
       const raw = fs.readFileSync(STORE_PATH, "utf8");
@@ -52,6 +56,7 @@ export function getStore(): DataStore {
 }
 
 export function saveStore() {
+  if (!FILE_STORE_ENABLED) return;
   try {
     const dir = path.dirname(STORE_PATH);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
