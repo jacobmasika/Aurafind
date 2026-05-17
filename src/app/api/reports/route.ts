@@ -47,7 +47,7 @@ export async function POST(req: Request) {
   };
 
   getStore().reports.unshift(report);
-  saveStore();
+  await saveStore();
 
   return NextResponse.json({ item: report }, { status: 201 });
 }

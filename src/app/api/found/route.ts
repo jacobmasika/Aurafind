@@ -30,7 +30,7 @@ export async function POST(req: Request) {
   };
 
   getStore().found.unshift(entry);
-  saveStore();
+  await saveStore();
 
   return NextResponse.json({ item: entry }, { status: 201 });
 }

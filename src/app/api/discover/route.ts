@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     .slice(0, 5);
 
   getStore().stories.unshift(story);
-  saveStore();
+  await saveStore();
 
   return NextResponse.json({ item: story, potentialLinks }, { status: 201 });
 }

@@ -30,7 +30,7 @@ export async function POST(req: Request) {
   };
 
   getStore().sightings.unshift(sighting);
-  saveStore();
+  await saveStore();
 
   return NextResponse.json({ item: sighting }, { status: 201 });
 }
