@@ -1,4 +1,4 @@
-import { getStore } from "@/lib/storage";
+import { getStore, saveStore } from "@/lib/storage";
 import { MissingReport } from "@/types/domain";
 import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
@@ -47,6 +47,7 @@ export async function POST(req: Request) {
   };
 
   getStore().reports.unshift(report);
+  saveStore();
 
   return NextResponse.json({ item: report }, { status: 201 });
 }

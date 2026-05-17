@@ -1,9 +1,13 @@
+import fs from "fs";
+import path from "path";
 import {
   DiscoverStory,
   FoundRegisterEntry,
   MissingReport,
   SightingReport,
 } from "@/types/domain";
+
+const STORE_PATH = path.resolve(process.cwd(), "data", "store.json");
 
 interface DataStore {
   reports: MissingReport[];
@@ -12,13 +16,51 @@ interface DataStore {
   stories: DiscoverStory[];
 }
 
-const store: DataStore = {
+let store: DataStore = {
   reports: [],
   sightings: [],
   found: [],
   stories: [],
 };
 
-export function getStore() {
+function loadStore() {
+  try {
+    if (fs.existsSync(STORE_PATH)) {
+      const raw = fs.readFileSync(STORE_PATH, "utf8");
+      const parsed = raw ? JSON.parse(raw) : {};
+      store = {
+        reports: parsed.reports || [],
+        sightings: parsed.sightings || [],
+        found: parsed.found || [],
+        stories: parsed.stories || [],
+      };
+    } else {
+      // ensure directory exists
+      const dir = path.dirname(STORE_PATH);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      saveStore();
+    }
+  } catch (err) {
+    // don't crash the app if load fails
+    // eslint-disable-next-line no-console
+    console.error("Failed to load store.json:", err);
+  }
+}
+
+export function getStore(): DataStore {
   return store;
 }
+
+export function saveStore() {
+  try {
+    const dir = path.dirname(STORE_PATH);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(STORE_PATH, JSON.stringify(store, null, 2), "utf8");
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("Failed to write store.json:", err);
+  }
+}
+
+// load at startup
+loadStore();

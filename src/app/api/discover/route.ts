@@ -1,5 +1,5 @@
 import { extractStoryTags, overlapScore } from "@/lib/nlp";
-import { getStore } from "@/lib/storage";
+import { getStore, saveStore } from "@/lib/storage";
 import { DiscoverStory } from "@/types/domain";
 import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
@@ -39,6 +39,7 @@ export async function POST(req: Request) {
     .slice(0, 5);
 
   getStore().stories.unshift(story);
+  saveStore();
 
   return NextResponse.json({ item: story, potentialLinks }, { status: 201 });
 }

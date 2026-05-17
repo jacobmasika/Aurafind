@@ -1,4 +1,4 @@
-import { getStore } from "@/lib/storage";
+import { getStore, saveStore } from "@/lib/storage";
 import { FoundRegisterEntry } from "@/types/domain";
 import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
@@ -30,6 +30,7 @@ export async function POST(req: Request) {
   };
 
   getStore().found.unshift(entry);
+  saveStore();
 
   return NextResponse.json({ item: entry }, { status: 201 });
 }
