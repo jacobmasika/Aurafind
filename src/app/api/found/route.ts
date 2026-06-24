@@ -14,23 +14,34 @@ const foundSchema = z.object({
 });
 
 export async function GET() {
-  const items = await listFound();
-  return NextResponse.json({ items });
+  try {
+    const items = await listFound();
+    return NextResponse.json({ items });
+  } catch {
+    return NextResponse.json({ error: "Failed to load found entries from Supabase." }, { status: 503 });
+  }
 }
 
 export async function POST(req: Request) {
-  const parsed = foundSchema.safeParse(await req.json());
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  try {
+    const parsed = foundSchema.safeParse(await req.json());
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    }
+
+    const entry: FoundRegisterEntry = {
+      id: randomUUID(),
+      createdAt: new Date().toISOString(),
+      ...parsed.data,
+    };
+
+    const item = await createFound(entry);
+
+    return NextResponse.json({ item }, { status: 201 });
+  } catch {
+    return NextResponse.json(
+      { error: "Failed to save found entry. Check Supabase key permissions and table policies." },
+      { status: 503 },
+    );
   }
-
-  const entry: FoundRegisterEntry = {
-    id: randomUUID(),
-    createdAt: new Date().toISOString(),
-    ...parsed.data,
-  };
-
-  const item = await createFound(entry);
-
-  return NextResponse.json({ item }, { status: 201 });
 }

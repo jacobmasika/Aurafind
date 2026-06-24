@@ -13,24 +13,35 @@ const sightingSchema = z.object({
 });
 
 export async function GET() {
-  const items = await listSightings();
-  return NextResponse.json({ items });
+  try {
+    const items = await listSightings();
+    return NextResponse.json({ items });
+  } catch {
+    return NextResponse.json({ error: "Failed to load sightings from Supabase." }, { status: 503 });
+  }
 }
 
 export async function POST(req: Request) {
-  const parsed = sightingSchema.safeParse(await req.json());
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  try {
+    const parsed = sightingSchema.safeParse(await req.json());
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    }
+
+    const sighting: SightingReport = {
+      id: randomUUID(),
+      createdAt: new Date().toISOString(),
+      anonymous: true,
+      ...parsed.data,
+    };
+
+    const item = await createSighting(sighting);
+
+    return NextResponse.json({ item }, { status: 201 });
+  } catch {
+    return NextResponse.json(
+      { error: "Failed to save sighting. Check Supabase key permissions and table policies." },
+      { status: 503 },
+    );
   }
-
-  const sighting: SightingReport = {
-    id: randomUUID(),
-    createdAt: new Date().toISOString(),
-    anonymous: true,
-    ...parsed.data,
-  };
-
-  const item = await createSighting(sighting);
-
-  return NextResponse.json({ item }, { status: 201 });
 }

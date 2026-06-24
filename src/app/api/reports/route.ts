@@ -30,24 +30,35 @@ const reportSchema = z.object({
 });
 
 export async function GET() {
-  const items = await listReports();
-  return NextResponse.json({ items });
+  try {
+    const items = await listReports();
+    return NextResponse.json({ items });
+  } catch {
+    return NextResponse.json({ error: "Failed to load reports from Supabase." }, { status: 503 });
+  }
 }
 
 export async function POST(req: Request) {
-  const parsed = reportSchema.safeParse(await req.json());
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  try {
+    const parsed = reportSchema.safeParse(await req.json());
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    }
+
+    const report: MissingReport = {
+      id: randomUUID(),
+      createdAt: new Date().toISOString(),
+      status: "missing",
+      ...parsed.data,
+    };
+
+    const item = await createReport(report);
+
+    return NextResponse.json({ item }, { status: 201 });
+  } catch {
+    return NextResponse.json(
+      { error: "Failed to save report. Check Supabase key permissions and table policies." },
+      { status: 503 },
+    );
   }
-
-  const report: MissingReport = {
-    id: randomUUID(),
-    createdAt: new Date().toISOString(),
-    status: "missing",
-    ...parsed.data,
-  };
-
-  const item = await createReport(report);
-
-  return NextResponse.json({ item }, { status: 201 });
 }
