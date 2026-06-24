@@ -18,6 +18,9 @@ export const metadata: Metadata = {
   title: "AuraFind | Global Missing Persons & Reunion Network",
   description:
     "Serverless emergency reporting, AI-assisted matching, and compassionate discovery workflows for reuniting missing people worldwide.",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
