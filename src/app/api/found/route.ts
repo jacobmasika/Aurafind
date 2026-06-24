@@ -1,4 +1,4 @@
-import { getStore, saveStore } from "@/lib/storage";
+import { createFound, listFound } from "@/lib/storage";
 import { FoundRegisterEntry } from "@/types/domain";
 import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
@@ -14,7 +14,8 @@ const foundSchema = z.object({
 });
 
 export async function GET() {
-  return NextResponse.json({ items: getStore().found });
+  const items = await listFound();
+  return NextResponse.json({ items });
 }
 
 export async function POST(req: Request) {
@@ -29,8 +30,7 @@ export async function POST(req: Request) {
     ...parsed.data,
   };
 
-  getStore().found.unshift(entry);
-  await saveStore();
+  const item = await createFound(entry);
 
-  return NextResponse.json({ item: entry }, { status: 201 });
+  return NextResponse.json({ item }, { status: 201 });
 }

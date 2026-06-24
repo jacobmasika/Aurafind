@@ -46,6 +46,11 @@ Copy `.env.example` to `.env.local` and configure as needed.
 
 Communication and AWS variables are optional in this version and used to signal integration readiness.
 
+For persistent production storage, these are required:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `SUPABASE_SERVICE_KEY` (server-side only)
+
 ## API Routes
 
 - `GET/POST /api/reports`
@@ -58,7 +63,36 @@ Communication and AWS variables are optional in this version and used to signal 
 
 ## Important Note on Persistence
 
-This implementation currently uses in-memory storage for fast setup and demo usability. For production serverless deployment, replace storage with DynamoDB/S3 and wire biometric matching to AWS Rekognition.
+Production persistence now uses Supabase-backed storage. Apply the SQL migration in `supabase/migrations/20260518_initial_persistence.sql` so the `reports`, `sightings`, `found`, and `stories` tables exist in `public` before deploying.
+
+Also apply `supabase/migrations/20260527_reliability_indexes.sql` for index and default-value hardening.
+
+Local development can still use the file store when `USE_FILE_STORE=true`.
+
+## Supabase Setup (Dashboard)
+
+1. Create a new Supabase project.
+2. Open SQL Editor and run the full SQL in:
+	- `supabase/migrations/20260518_initial_persistence.sql`
+	- `supabase/migrations/20260527_reliability_indexes.sql`
+3. In Supabase, go to Project Settings > API and copy:
+	- Project URL
+	- service_role key
+
+## Vercel Link + Env Setup
+
+1. Import this repository into Vercel.
+2. In Vercel Project Settings > Environment Variables, add:
+	- `NEXT_PUBLIC_SUPABASE_URL` = your Supabase Project URL
+	- `SUPABASE_SERVICE_KEY` = your Supabase service_role key
+3. Add both variables to Production, Preview, and Development environments.
+4. Redeploy the project.
+
+## Verify Persistence
+
+1. Open `/api/health` after deployment.
+2. Confirm response includes `"persistence": "supabase"`.
+3. Submit one report and confirm a new row appears in Supabase table `public.reports`.
 
 ## Deploy
 

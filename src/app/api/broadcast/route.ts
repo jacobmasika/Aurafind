@@ -1,4 +1,4 @@
-import { getStore } from "@/lib/storage";
+import { getReportById } from "@/lib/storage";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const report = getStore().reports.find((item) => item.id === parsed.data.reportId);
+  const report = await getReportById(parsed.data.reportId);
   if (!report) {
     return NextResponse.json({ error: "Report not found" }, { status: 404 });
   }

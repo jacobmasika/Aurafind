@@ -1,4 +1,4 @@
-import { getStore, saveStore } from "@/lib/storage";
+import { createReport, listReports } from "@/lib/storage";
 import { MissingReport } from "@/types/domain";
 import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
@@ -30,7 +30,8 @@ const reportSchema = z.object({
 });
 
 export async function GET() {
-  return NextResponse.json({ items: getStore().reports });
+  const items = await listReports();
+  return NextResponse.json({ items });
 }
 
 export async function POST(req: Request) {
@@ -46,8 +47,7 @@ export async function POST(req: Request) {
     ...parsed.data,
   };
 
-  getStore().reports.unshift(report);
-  await saveStore();
+  const item = await createReport(report);
 
-  return NextResponse.json({ item: report }, { status: 201 });
+  return NextResponse.json({ item }, { status: 201 });
 }

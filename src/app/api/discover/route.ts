@@ -1,5 +1,5 @@
 import { extractStoryTags, overlapScore } from "@/lib/nlp";
-import { getStore, saveStore } from "@/lib/storage";
+import { createStory, listStories } from "@/lib/storage";
 import { DiscoverStory } from "@/types/domain";
 import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
@@ -12,7 +12,8 @@ const storySchema = z.object({
 });
 
 export async function GET() {
-  return NextResponse.json({ items: getStore().stories });
+  const items = await listStories();
+  return NextResponse.json({ items });
 }
 
 export async function POST(req: Request) {
@@ -29,7 +30,9 @@ export async function POST(req: Request) {
     tags,
   };
 
-  const potentialLinks = getStore().stories
+  const existingStories = await listStories();
+
+  const potentialLinks = existingStories
     .map((item) => ({
       id: item.id,
       score: overlapScore(item.tags, story.tags),
@@ -38,8 +41,7 @@ export async function POST(req: Request) {
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
 
-  getStore().stories.unshift(story);
-  await saveStore();
+  const item = await createStory(story);
 
-  return NextResponse.json({ item: story, potentialLinks }, { status: 201 });
+  return NextResponse.json({ item, potentialLinks }, { status: 201 });
 }

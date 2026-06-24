@@ -1,5 +1,5 @@
 import { scoreCandidate } from "@/lib/matching";
-import { getStore } from "@/lib/storage";
+import { getReportById, listFound, listSightings } from "@/lib/storage";
 import { MatchResult } from "@/types/domain";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -14,14 +14,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const report = getStore().reports.find((item) => item.id === parsed.data.reportId);
+  const report = await getReportById(parsed.data.reportId);
   if (!report) {
     return NextResponse.json({ error: "Report not found" }, { status: 404 });
   }
 
+  const [sightings, foundEntries] = await Promise.all([listSightings(), listFound()]);
+
   const results: MatchResult[] = [];
 
-  for (const sighting of getStore().sightings) {
+  for (const sighting of sightings) {
     results.push(
       scoreCandidate({
         report,
@@ -34,7 +36,7 @@ export async function POST(req: Request) {
     );
   }
 
-  for (const foundEntry of getStore().found) {
+  for (const foundEntry of foundEntries) {
     results.push(
       scoreCandidate({
         report,

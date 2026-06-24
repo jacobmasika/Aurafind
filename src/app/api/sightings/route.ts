@@ -1,4 +1,4 @@
-import { getStore, saveStore } from "@/lib/storage";
+import { createSighting, listSightings } from "@/lib/storage";
 import { SightingReport } from "@/types/domain";
 import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
@@ -13,7 +13,8 @@ const sightingSchema = z.object({
 });
 
 export async function GET() {
-  return NextResponse.json({ items: getStore().sightings });
+  const items = await listSightings();
+  return NextResponse.json({ items });
 }
 
 export async function POST(req: Request) {
@@ -29,8 +30,7 @@ export async function POST(req: Request) {
     ...parsed.data,
   };
 
-  getStore().sightings.unshift(sighting);
-  await saveStore();
+  const item = await createSighting(sighting);
 
-  return NextResponse.json({ item: sighting }, { status: 201 });
+  return NextResponse.json({ item }, { status: 201 });
 }

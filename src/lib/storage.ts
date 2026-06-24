@@ -10,20 +10,20 @@ import {
 
 const STORE_PATH = path.resolve(process.cwd(), "data", "store.json");
 
-// Only enable file-backed storage in development or when explicitly requested.
+// File-backed storage is useful for local development when Supabase is not configured.
 const FILE_STORE_ENABLED = process.env.NODE_ENV === "development" || process.env.USE_FILE_STORE === "true";
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const SUPABASE_ENABLED = Boolean(SUPABASE_URL && SUPABASE_SERVICE_KEY);
 
-// Supabase client setup
-const SUPABASE_ENABLED = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY);
-
-let supabaseClient: ReturnType<typeof createClient> | null = null;
-
-if (SUPABASE_ENABLED) {
-  supabaseClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_KEY!
-  );
-}
+const supabaseClient = SUPABASE_ENABLED
+  ? createClient(SUPABASE_URL!, SUPABASE_SERVICE_KEY!, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    })
+  : null;
 
 interface DataStore {
   reports: MissingReport[];
@@ -32,124 +32,172 @@ interface DataStore {
   stories: DiscoverStory[];
 }
 
-let store: DataStore = {
-  reports: [],
-  sightings: [],
-  found: [],
-  stories: [],
-};
+function emptyStore(): DataStore {
+  return {
+    reports: [],
+    sightings: [],
+    found: [],
+    stories: [],
+  };
+}
 
-function loadStoreFromFile() {
-  if (!FILE_STORE_ENABLED) return;
+function ensureFileStoreEnabled() {
+  if (!FILE_STORE_ENABLED) {
+    throw new Error("Supabase is not configured and file storage is disabled.");
+  }
+}
+
+function sortByCreatedAtDesc<T extends { createdAt: string }>(items: T[]): T[] {
+  return [...items].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+}
+
+async function readFileStore(): Promise<DataStore> {
+  ensureFileStoreEnabled();
+
   try {
-    if (fs.existsSync(STORE_PATH)) {
-      const raw = fs.readFileSync(STORE_PATH, "utf8");
-      const parsed = raw ? JSON.parse(raw) : {};
-      store = {
-        reports: parsed.reports || [],
-        sightings: parsed.sightings || [],
-        found: parsed.found || [],
-        stories: parsed.stories || [],
-      };
-    } else {
+    if (!fs.existsSync(STORE_PATH)) {
       const dir = path.dirname(STORE_PATH);
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-      saveStoreToFile();
+      const initial = emptyStore();
+      fs.writeFileSync(STORE_PATH, JSON.stringify(initial, null, 2), "utf8");
+      return initial;
     }
-  } catch (err) {
-    console.error("Failed to load store.json:", err);
-  }
-}
 
-async function loadStoreFromSupabase() {
-  if (!supabaseClient) return;
-  try {
-    const [reportsRes, sightingsRes, foundRes, storiesRes] = await Promise.all([
-      supabaseClient.from("reports").select("*"),
-      supabaseClient.from("sightings").select("*"),
-      supabaseClient.from("found").select("*"),
-      supabaseClient.from("stories").select("*"),
-    ]);
+    const raw = fs.readFileSync(STORE_PATH, "utf8");
+    const parsed = raw ? JSON.parse(raw) : {};
 
-    store = {
-      reports: (reportsRes.data || []) as MissingReport[],
-      sightings: (sightingsRes.data || []) as SightingReport[],
-      found: (foundRes.data || []) as FoundRegisterEntry[],
-      stories: (storiesRes.data || []) as DiscoverStory[],
+    return {
+      reports: parsed.reports || [],
+      sightings: parsed.sightings || [],
+      found: parsed.found || [],
+      stories: parsed.stories || [],
     };
   } catch (err) {
-    console.error("Failed to load from Supabase:", err);
+    console.error("Failed to read file store:", err);
+    return emptyStore();
   }
 }
 
-export function getStore(): DataStore {
-  return store;
-}
+async function writeFileStore(store: DataStore) {
+  ensureFileStoreEnabled();
 
-export function saveStoreToFile() {
-  if (!FILE_STORE_ENABLED) return;
   try {
     const dir = path.dirname(STORE_PATH);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(STORE_PATH, JSON.stringify(store, null, 2), "utf8");
   } catch (err) {
-    console.error("Failed to write store.json:", err);
+    console.error("Failed to write file store:", err);
+    throw err;
   }
 }
 
-export async function saveStoreToSupabase() {
-  if (!supabaseClient) return;
-  try {
-    // Insert or replace reports
-    if (store.reports.length > 0) {
-      await supabaseClient.from("reports").upsert(store.reports as never[]);
-    } else {
-      await supabaseClient.from("reports").delete().neq("id", "");
-    }
-
-    // Insert or replace sightings
-    if (store.sightings.length > 0) {
-      await supabaseClient.from("sightings").upsert(store.sightings as never[]);
-    } else {
-      await supabaseClient.from("sightings").delete().neq("id", "");
-    }
-
-    // Insert or replace found
-    if (store.found.length > 0) {
-      await supabaseClient.from("found").upsert(store.found as never[]);
-    } else {
-      await supabaseClient.from("found").delete().neq("id", "");
-    }
-
-    // Insert or replace stories
-    if (store.stories.length > 0) {
-      await supabaseClient.from("stories").upsert(store.stories as never[]);
-    } else {
-      await supabaseClient.from("stories").delete().neq("id", "");
-    }
-  } catch (err) {
-    console.error("Failed to save to Supabase:", err);
-  }
+export function getPersistenceMode(): "supabase" | "file" {
+  return SUPABASE_ENABLED ? "supabase" : "file";
 }
 
-export async function saveStore() {
+export async function listReports(): Promise<MissingReport[]> {
+  if (SUPABASE_ENABLED && supabaseClient) {
+    const { data, error } = await supabaseClient.from("reports").select("*").order("createdAt", { ascending: false });
+    if (error) throw error;
+    return (data || []) as MissingReport[];
+  }
+
+  const store = await readFileStore();
+  return sortByCreatedAtDesc(store.reports);
+}
+
+export async function createReport(report: MissingReport): Promise<MissingReport> {
+  if (SUPABASE_ENABLED && supabaseClient) {
+    const { data, error } = await supabaseClient.from("reports").insert(report as never).select("*").single();
+    if (error) throw error;
+    return data as MissingReport;
+  }
+
+  const store = await readFileStore();
+  store.reports.unshift(report);
+  await writeFileStore(store);
+  return report;
+}
+
+export async function getReportById(reportId: string): Promise<MissingReport | null> {
+  if (SUPABASE_ENABLED && supabaseClient) {
+    const { data, error } = await supabaseClient.from("reports").select("*").eq("id", reportId).maybeSingle();
+    if (error) throw error;
+    return (data as MissingReport | null) ?? null;
+  }
+
+  const store = await readFileStore();
+  return store.reports.find((item) => item.id === reportId) || null;
+}
+
+export async function listSightings(): Promise<SightingReport[]> {
+  if (SUPABASE_ENABLED && supabaseClient) {
+    const { data, error } = await supabaseClient.from("sightings").select("*").order("createdAt", { ascending: false });
+    if (error) throw error;
+    return (data || []) as SightingReport[];
+  }
+
+  const store = await readFileStore();
+  return sortByCreatedAtDesc(store.sightings);
+}
+
+export async function createSighting(sighting: SightingReport): Promise<SightingReport> {
+  if (SUPABASE_ENABLED && supabaseClient) {
+    const { data, error } = await supabaseClient.from("sightings").insert(sighting as never).select("*").single();
+    if (error) throw error;
+    return data as SightingReport;
+  }
+
+  const store = await readFileStore();
+  store.sightings.unshift(sighting);
+  await writeFileStore(store);
+  return sighting;
+}
+
+export async function listFound(): Promise<FoundRegisterEntry[]> {
+  if (SUPABASE_ENABLED && supabaseClient) {
+    const { data, error } = await supabaseClient.from("found").select("*").order("createdAt", { ascending: false });
+    if (error) throw error;
+    return (data || []) as FoundRegisterEntry[];
+  }
+
+  const store = await readFileStore();
+  return sortByCreatedAtDesc(store.found);
+}
+
+export async function createFound(entry: FoundRegisterEntry): Promise<FoundRegisterEntry> {
+  if (SUPABASE_ENABLED && supabaseClient) {
+    const { data, error } = await supabaseClient.from("found").insert(entry as never).select("*").single();
+    if (error) throw error;
+    return data as FoundRegisterEntry;
+  }
+
+  const store = await readFileStore();
+  store.found.unshift(entry);
+  await writeFileStore(store);
+  return entry;
+}
+
+export async function listStories(): Promise<DiscoverStory[]> {
+  if (SUPABASE_ENABLED && supabaseClient) {
+    const { data, error } = await supabaseClient.from("stories").select("*").order("createdAt", { ascending: false });
+    if (error) throw error;
+    return (data || []) as DiscoverStory[];
+  }
+
+  const store = await readFileStore();
+  return sortByCreatedAtDesc(store.stories);
+}
+
+export async function createStory(story: DiscoverStory): Promise<DiscoverStory> {
   if (SUPABASE_ENABLED) {
-    await saveStoreToSupabase();
-  } else {
-    saveStoreToFile();
+    const { data, error } = await supabaseClient!.from("stories").insert(story as never).select("*").single();
+    if (error) throw error;
+    return data as DiscoverStory;
   }
-}
 
-// Load at startup
-async function initStore() {
-  if (SUPABASE_ENABLED) {
-    await loadStoreFromSupabase();
-  } else {
-    loadStoreFromFile();
-  }
+  const store = await readFileStore();
+  store.stories.unshift(story);
+  await writeFileStore(store);
+  return story;
 }
-
-// Load immediately for sync calls, but also set up async load
-initStore().catch((err) => {
-  console.error("Store initialization failed:", err);
-});
