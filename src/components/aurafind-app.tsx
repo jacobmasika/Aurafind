@@ -92,7 +92,7 @@ async function callApi<T>(url: string, init?: RequestInit): Promise<T> {
 
   const payload = await response.json();
   if (!response.ok) {
-    throw new Error(payload.error ? JSON.stringify(payload.error) : "Request failed");
+    throw new ApiError(response.status, payload, getApiErrorMessage(payload));
   }
 
   return payload as T;
@@ -162,6 +162,67 @@ function Area(props: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { error
       {error && errorMessage && <p className="mt-1 text-xs text-red-500">{errorMessage}</p>}
     </div>
   );
+}
+
+class ApiError extends Error {
+  status: number;
+  payload: unknown;
+
+  constructor(status: number, payload: unknown, message: string) {
+    super(message);
+    this.status = status;
+    this.payload = payload;
+  }
+}
+
+function getApiErrorMessage(payload: unknown) {
+  if (!payload || typeof payload !== "object") {
+    return "Request failed";
+  }
+
+  const error = (payload as { error?: unknown }).error;
+  if (typeof error === "string") {
+    return error;
+  }
+
+  if (error && typeof error === "object") {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string" && message.trim()) {
+      return message;
+    }
+  }
+
+  return "Request failed";
+}
+
+function getApiFieldErrors(payload: unknown) {
+  if (!payload || typeof payload !== "object") {
+    return {} as Record<string, string>;
+  }
+
+  const error = (payload as { error?: unknown }).error;
+  if (!error || typeof error !== "object") {
+    return {} as Record<string, string>;
+  }
+
+  const fieldErrors = (error as { fieldErrors?: unknown }).fieldErrors;
+  if (!fieldErrors || typeof fieldErrors !== "object") {
+    return {} as Record<string, string>;
+  }
+
+  const result: Record<string, string> = {};
+  for (const [key, value] of Object.entries(fieldErrors as Record<string, unknown>)) {
+    if (typeof value === "string" && value.trim()) {
+      result[key] = value;
+      continue;
+    }
+
+    if (Array.isArray(value) && value[0] && typeof value[0] === "string") {
+      result[key] = value[0];
+    }
+  }
+
+  return result;
 }
 
 export function AuraFindApp() {
@@ -339,33 +400,33 @@ export function AuraFindApp() {
 
     // Check missing person name
     if (!reportDraft.fullName.trim()) {
-      errors.fullName = "Missing person name is mandatory!";
+      errors.fullName = "Missing person name is required.";
     }
 
     // Check reporter name
     if (!reportDraft.reporterName.trim()) {
-      errors.reporterName = "Reporter name is mandatory!";
+      errors.reporterName = "Reporter name is required.";
     }
 
     // Check reporter email
     if (!reportDraft.reporterEmail.trim()) {
-      errors.reporterEmail = "Reporter email is mandatory!";
+      errors.reporterEmail = "Reporter email is required.";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(reportDraft.reporterEmail)) {
-      errors.reporterEmail = "Invalid email format!";
+      errors.reporterEmail = "Invalid email!";
     }
 
     // Check age if provided (must be a positive number)
     if (reportDraft.age && Number.isNaN(Number(reportDraft.age))) {
-      errors.age = "Age must be a valid number!";
+      errors.age = "Invalid age!";
     } else if (reportDraft.age && Number(reportDraft.age) <= 0) {
-      errors.age = "Age must be greater than 0!";
+      errors.age = "Invalid age!";
     }
 
     // Check height if provided (must be a positive number)
     if (reportDraft.heightCm && Number.isNaN(Number(reportDraft.heightCm))) {
-      errors.heightCm = "Height must be a valid number!";
+      errors.heightCm = "Invalid height!";
     } else if (reportDraft.heightCm && Number(reportDraft.heightCm) <= 0) {
-      errors.heightCm = "Height must be greater than 0!";
+      errors.heightCm = "Invalid height!";
     }
 
     setFieldErrors(errors);
@@ -422,8 +483,18 @@ export function AuraFindApp() {
       setReportPhotoInputKey((value) => value + 1);
       setFieldErrors({});
       await loadDashboard();
-    } catch {
-      setStatusMessage("Unable to submit the case. Verify required fields and try again.");
+    } catch (error) {
+      if (error instanceof ApiError) {
+        const fieldErrors = getApiFieldErrors(error.payload);
+        if (error.status === 400 && Object.keys(fieldErrors).length > 0) {
+          setFieldErrors(fieldErrors);
+        }
+
+        setStatusMessage(error.message);
+        return;
+      }
+
+      setStatusMessage("Unable to submit the case. Please try again.");
     } finally {
       setWorking(false);
     }

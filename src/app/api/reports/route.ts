@@ -29,6 +29,32 @@ const reportSchema = z.object({
   exif: z.record(z.string(), z.unknown()).optional(),
 });
 
+function mapValidationIssues(error: z.ZodError) {
+  const fieldErrors: Record<string, string> = {};
+
+  for (const issue of error.issues) {
+    const path = issue.path.join(".");
+    let key = path;
+
+    if (path === "person.fullName") key = "fullName";
+    if (path === "person.age") key = "age";
+    if (path === "person.heightCm") key = "heightCm";
+
+    if (!fieldErrors[key]) {
+      fieldErrors[key] = issue.message;
+    }
+  }
+
+  const flattened = error.flatten();
+
+  return {
+    message: "Please fix the highlighted fields and try again.",
+    fieldErrors,
+    formErrors: flattened.formErrors,
+    issues: error.issues,
+  };
+}
+
 export async function GET() {
   try {
     const items = await listReports();
@@ -42,7 +68,7 @@ export async function POST(req: Request) {
   try {
     const parsed = reportSchema.safeParse(await req.json());
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+      return NextResponse.json({ error: mapValidationIssues(parsed.error) }, { status: 400 });
     }
 
     const report: MissingReport = {
@@ -55,9 +81,14 @@ export async function POST(req: Request) {
     const item = await createReport(report);
 
     return NextResponse.json({ item }, { status: 201 });
-  } catch {
+  } catch (error) {
     return NextResponse.json(
-      { error: "Failed to save report. Check Supabase key permissions and table policies." },
+      {
+        error: {
+          message: "Failed to save report. Check Supabase key permissions and table policies.",
+          detail: error instanceof Error ? error.message : "Unknown server error",
+        },
+      },
       { status: 503 },
     );
   }
