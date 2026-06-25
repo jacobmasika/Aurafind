@@ -13,7 +13,8 @@ function resolveSupabaseKey() {
     process.env.SUPABASE_SERVICE_KEY ||
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    "sb_publishable_K7AeTa5FqlPlx8ogz9qH0g_vy1OS55Z"
   );
 }
 
@@ -22,7 +23,7 @@ const STORE_PATH =
     ? path.resolve(process.cwd(), "data", "store.json")
     : path.join("/tmp", "aurafind-store.json");
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://hxtmqgkirxrqtoewvyor.supabase.co";
 const SUPABASE_KEY = resolveSupabaseKey();
 const SUPABASE_ENABLED = Boolean(SUPABASE_URL && SUPABASE_KEY);
 const ALLOW_FILE_STORE = process.env.USE_FILE_STORE === "true";
