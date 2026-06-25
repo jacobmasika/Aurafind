@@ -25,7 +25,8 @@ const STORE_PATH =
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = resolveSupabaseKey();
 const SUPABASE_ENABLED = Boolean(SUPABASE_URL && SUPABASE_KEY);
-const FILE_STORE_ENABLED = process.env.USE_FILE_STORE === "true" || !SUPABASE_ENABLED;
+const ALLOW_FILE_STORE = process.env.USE_FILE_STORE === "true";
+const FILE_STORE_ENABLED = ALLOW_FILE_STORE || (!SUPABASE_ENABLED && process.env.NODE_ENV === "development");
 
 const supabaseClient = SUPABASE_ENABLED
   ? createClient(SUPABASE_URL!, SUPABASE_KEY!, {
@@ -65,7 +66,7 @@ function ensureStoreDirectory() {
 
 async function readFileStore(): Promise<DataStore> {
   if (!FILE_STORE_ENABLED) {
-    throw new Error("File storage is disabled. Enable USE_FILE_STORE or configure Supabase.");
+    throw new Error("File storage is disabled. Configure Supabase for production persistence.");
   }
 
   try {
@@ -93,7 +94,7 @@ async function readFileStore(): Promise<DataStore> {
 
 async function writeFileStore(store: DataStore) {
   if (!FILE_STORE_ENABLED) {
-    throw new Error("File storage is disabled. Enable USE_FILE_STORE or configure Supabase.");
+    throw new Error("File storage is disabled. Configure Supabase for production persistence.");
   }
 
   try {
@@ -117,6 +118,10 @@ function getSupabaseClient() {
 
 export function getPersistenceMode(): "supabase" | "file" {
   return FILE_STORE_ENABLED ? "file" : "supabase";
+}
+
+export function hasSupabaseConfiguration() {
+  return SUPABASE_ENABLED;
 }
 
 export async function listReports(): Promise<MissingReport[]> {
