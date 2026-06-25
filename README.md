@@ -49,7 +49,8 @@ Communication and AWS variables are optional in this version and used to signal 
 For persistent production storage, these are required:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
-- `SUPABASE_SERVICE_KEY` (server-side only)
+- `SUPABASE_SERVICE_KEY` or `SUPABASE_SERVICE_ROLE_KEY` (server-side only)
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (client-side)
 
 ## API Routes
 
@@ -85,6 +86,7 @@ Local development can still use the file store when `USE_FILE_STORE=true`.
 2. In Vercel Project Settings > Environment Variables, add:
 	- `NEXT_PUBLIC_SUPABASE_URL` = your Supabase Project URL
 	- `SUPABASE_SERVICE_KEY` = your Supabase service_role key
+	- `NEXT_PUBLIC_SUPABASE_ANON_KEY` = your Supabase anon key, or reuse the publishable key name if that is what you already use
 3. Add both variables to Production, Preview, and Development environments.
 4. Redeploy the project.
 
