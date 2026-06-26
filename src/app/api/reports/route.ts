@@ -82,14 +82,21 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ item }, { status: 201 });
   } catch (error) {
-    return NextResponse.json(
-      {
-        error: {
-          message: "Failed to save report. Check Supabase key permissions and table policies.",
-          detail: error instanceof Error ? error.message : "Unknown server error",
-        },
+  console.error("POST /api/reports failed");
+  console.error(error);
+
+  return NextResponse.json(
+    {
+      error: {
+        message: "Failed to save report",
+        detail:
+          error instanceof Error
+            ? error.message
+            : JSON.stringify(error, null, 2),
       },
-      { status: 503 },
-    );
-  }
+    },
+    { status: 500 }
+  );
 }
+  }
+

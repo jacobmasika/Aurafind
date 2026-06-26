@@ -9,15 +9,18 @@ import {
 } from "@/types/domain";
 
 function resolveSupabaseKey() {
-  return (
-    process.env.SUPABASE_SERVICE_KEY ||
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-    "sb_publishable_K7AeTa5FqlPlx8ogz9qH0g_vy1OS55Z"
-  );
-}
+  const key =
+    process.env.SUPABASE_SECRET_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+  if (!key) {
+    throw new Error(
+      "Missing SUPABASE_SECRET_KEY (or SUPABASE_SERVICE_ROLE_KEY) in server environment."
+    );
+  }
+
+  return key;
+}
 const STORE_PATH =
   process.env.NODE_ENV === "development"
     ? path.resolve(process.cwd(), "data", "store.json")
@@ -34,7 +37,7 @@ console.log("Using Anon:", !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 console.log("Resolved key starts with:", SUPABASE_KEY?.substring(0, 20));
 console.log("SERVICE_ROLE_KEY exists:", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
 console.log("SERVICE_KEY exists:", !!process.env.SUPABASE_SERVICE_KEY);
-console.log("Resolved key prefix:", SUPABASE_KEY.substring(0, 20));
+//console.log("Resolved key prefix:", SUPABASE_KEY.substring(0, 20));
 const SUPABASE_ENABLED = Boolean(SUPABASE_URL && SUPABASE_KEY);
 const ALLOW_FILE_STORE = process.env.USE_FILE_STORE === "true";
 const FILE_STORE_ENABLED = ALLOW_FILE_STORE || (!SUPABASE_ENABLED && process.env.NODE_ENV === "development");
