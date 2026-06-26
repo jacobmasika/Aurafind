@@ -25,6 +25,16 @@ const STORE_PATH =
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://hxtmqgkirxrqtoewvyor.supabase.co";
 const SUPABASE_KEY = resolveSupabaseKey();
+console.log("=== SUPABASE CONFIG ===");
+console.log("URL:", SUPABASE_URL);
+console.log("Using Service Role:", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+console.log("Using Service Key:", !!process.env.SUPABASE_SERVICE_KEY);
+console.log("Using Publishable:", !!process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+console.log("Using Anon:", !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+console.log("Resolved key starts with:", SUPABASE_KEY?.substring(0, 20));
+console.log("SERVICE_ROLE_KEY exists:", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+console.log("SERVICE_KEY exists:", !!process.env.SUPABASE_SERVICE_KEY);
+console.log("Resolved key prefix:", SUPABASE_KEY.substring(0, 20));
 const SUPABASE_ENABLED = Boolean(SUPABASE_URL && SUPABASE_KEY);
 const ALLOW_FILE_STORE = process.env.USE_FILE_STORE === "true";
 const FILE_STORE_ENABLED = ALLOW_FILE_STORE || (!SUPABASE_ENABLED && process.env.NODE_ENV === "development");
@@ -141,7 +151,13 @@ export async function createReport(report: MissingReport): Promise<MissingReport
   if (SUPABASE_ENABLED && supabaseClient) {
     const client = getSupabaseClient();
     const { data, error } = await client.from("reports").insert(report as never).select("*").single();
-    if (error) throw error;
+    if (error) {
+  console.error("Supabase insert failed:");
+  console.error(JSON.stringify(error, null, 2));
+  console.error("Report payload:");
+  console.error(JSON.stringify(report, null, 2));
+  throw error;
+}
     return data as MissingReport;
   }
 
