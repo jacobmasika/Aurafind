@@ -60,6 +60,7 @@ For persistent production storage, these are required:
 - `GET/POST /api/discover`
 - `POST /api/matches`
 - `POST /api/broadcast`
+- `GET/DELETE /api/admin/reports`
 - `GET /api/health`
 
 ## Important Note on Persistence
@@ -96,6 +97,13 @@ Local development can still use the file store when `USE_FILE_STORE=true`.
 2. Confirm response includes `"persistence": "supabase"`.
 3. Submit one report and confirm a new row appears in Supabase table `public.reports`.
 
+## Admin deletion workflow
+
+1. Set an `ADMIN_PASSWORD` environment variable in your deployment environment.
+2. Open `/admin` in the deployed app.
+3. Enter the admin password and click **Load reports** to review existing cases.
+4. Delete any report that should be removed permanently.
+
 ## Deploy
 
 Deploy on Vercel for edge hosting:
@@ -104,4 +112,4 @@ Deploy on Vercel for edge hosting:
 npm run build
 ```
 
-Then import this folder into Vercel and configure environment variables.
+Then import this folder into Vercel and configure environment variables, including `ADMIN_PASSWORD` for the admin delete screen.

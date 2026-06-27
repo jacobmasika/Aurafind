@@ -182,6 +182,19 @@ export async function getReportById(reportId: string): Promise<MissingReport | n
   return store.reports.find((item) => item.id === reportId) || null;
 }
 
+export async function deleteReport(reportId: string): Promise<void> {
+  if (SUPABASE_ENABLED && supabaseClient) {
+    const client = getSupabaseClient();
+    const { error } = await client.from("reports").delete().eq("id", reportId);
+    if (error) throw error;
+    return;
+  }
+
+  const store = await readFileStore();
+  store.reports = store.reports.filter((item) => item.id !== reportId);
+  await writeFileStore(store);
+}
+
 export async function listSightings(): Promise<SightingReport[]> {
   if (SUPABASE_ENABLED && supabaseClient) {
     const client = getSupabaseClient();
