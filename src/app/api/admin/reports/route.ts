@@ -1,8 +1,9 @@
+import { ADMIN_PASSWORD } from "@/lib/adminAuth";
 import { deleteReport, listReports } from "@/lib/storage";
 import { NextResponse } from "next/server";
 
 function isAuthorized(request: Request) {
-  const configuredPassword = process.env.ADMIN_PASSWORD || process.env.NEXT_PUBLIC_ADMIN_PASSWORD;
+  const configuredPassword = process.env.ADMIN_PASSWORD || process.env.NEXT_PUBLIC_ADMIN_PASSWORD || ADMIN_PASSWORD;
 
   if (!configuredPassword) {
     return process.env.NODE_ENV !== "production";
