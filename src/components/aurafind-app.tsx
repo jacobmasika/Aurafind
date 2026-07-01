@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { parse as parseExif } from "exifr";
 import jsPDF from "jspdf";
 import Image from "next/image";
+import Link from "next/link";
 import {
   BellRing,
   Bot,
@@ -747,6 +748,12 @@ export function AuraFindApp() {
               >
                 <BellRing className="h-4 w-4" /> Enable Geofenced Push
               </button>
+              <Link
+                href="/admin"
+                className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white/85 px-4 py-2 text-sm hover:bg-white dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
+              >
+                <UserRoundSearch className="h-4 w-4" /> Admin
+              </Link>
             </div>
           </div>
 
