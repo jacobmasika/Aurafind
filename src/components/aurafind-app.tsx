@@ -73,6 +73,23 @@ function toBase64(file: File) {
   });
 }
 
+function toDateInputValue(value: string) {
+  if (!value) {
+    return "";
+  }
+
+  const dateOnly = value.slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(dateOnly) ? dateOnly : "";
+}
+
+function toLocalDateTimeString(value: string) {
+  if (!value) {
+    return undefined;
+  }
+
+  return `${value}T12:00:00`;
+}
+
 async function callApi<T>(url: string, init?: RequestInit): Promise<T> {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 12000);
@@ -452,7 +469,7 @@ export function AuraFindApp() {
         reporterEmail: reportDraft.reporterEmail,
         reporterPhone: reportDraft.reporterPhone || undefined,
         lastKnownLocationName: reportDraft.lastLocation || undefined,
-        lastSeenAt: reportDraft.lastSeenAt || undefined,
+        lastSeenAt: toLocalDateTimeString(reportDraft.lastSeenAt),
         person: {
           fullName: reportDraft.fullName,
           age: reportDraft.age && Number.isFinite(parsedAge) ? parsedAge : undefined,
@@ -509,7 +526,7 @@ export function AuraFindApp() {
         method: "POST",
         body: JSON.stringify({
           notes: sightingNotes,
-          seenAt: sightingSeenAt,
+          seenAt: toLocalDateTimeString(sightingSeenAt) || "",
           location: { lat: Number(sightingLat), lng: Number(sightingLng) },
           photos: sightingPhotos,
           country: sightingCountry || undefined,
@@ -764,7 +781,7 @@ export function AuraFindApp() {
                   {card.icon}
                   {card.label}
                 </p>
-                <p className="mt-2 text-2xl font-semibold">{card.value}</p>
+                <p className="mt-2 text-2xl font-semibold">{loadingBoard ? "Just a second.." : card.value}</p>
               </div>
             ))}
           </div>
@@ -798,9 +815,8 @@ export function AuraFindApp() {
           <div className="grid gap-6">
             <Card title="Active Cases" icon={<UserRoundSearch className="h-5 w-5" />}>
               {loadingBoard && reports.length === 0 ? (
-                <div className="grid gap-3">
-                  <div className="h-24 animate-pulse rounded-2xl border border-slate-200 bg-slate-100/80 dark:border-slate-800 dark:bg-slate-900/70" />
-                  <div className="h-24 animate-pulse rounded-2xl border border-slate-200 bg-slate-100/80 dark:border-slate-800 dark:bg-slate-900/70" />
+                <div className="rounded-2xl border border-dashed border-slate-300/80 bg-white/70 p-4 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300">
+                  Just a second..
                 </div>
               ) : reports.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-slate-300/80 bg-white/70 p-4 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300">
@@ -909,7 +925,18 @@ export function AuraFindApp() {
                     <Input placeholder="Languages (comma separated, optional)" value={reportDraft.languages} onChange={(e) => setReportDraft((prev) => ({ ...prev, languages: e.target.value }))} className="sm:col-span-2" />
 
                     {/* Incident Details */}
-                    <Input type="datetime-local" value={reportDraft.lastSeenAt} onChange={(e) => setReportDraft((prev) => ({ ...prev, lastSeenAt: e.target.value }))} />
+                    <div className="sm:col-span-2">
+                      <label className="mb-2 block text-xs uppercase tracking-[0.18em] text-slate-600 dark:text-slate-300">
+                        Last seen date
+                      </label>
+                      <Input
+                        type="date"
+                        value={toDateInputValue(reportDraft.lastSeenAt)}
+                        onChange={(e) => setReportDraft((prev) => ({ ...prev, lastSeenAt: e.target.value }))}
+                        className="mt-1"
+                      />
+                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Pick the date from the calendar.</p>
+                    </div>
                     <Input placeholder="Last Seen Location (e.g., Central Park, NYC)" value={reportDraft.lastLocation} onChange={(e) => setReportDraft((prev) => ({ ...prev, lastLocation: e.target.value }))} />
 
                     {/* Media & Voice */}
@@ -994,7 +1021,18 @@ export function AuraFindApp() {
                 <Card title="Anonymous sighting" icon={<Compass className="h-5 w-5" />}>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <Area placeholder="What did you observe?" value={sightingNotes} onChange={(e) => setSightingNotes(e.target.value)} className="min-h-24 sm:col-span-2" />
-                    <Input type="datetime-local" value={sightingSeenAt} onChange={(e) => setSightingSeenAt(e.target.value)} />
+                    <div className="sm:col-span-2">
+                      <label className="mb-2 block text-xs uppercase tracking-[0.18em] text-slate-600 dark:text-slate-300">
+                        Sighting date
+                      </label>
+                      <Input
+                        type="date"
+                        value={toDateInputValue(sightingSeenAt)}
+                        onChange={(e) => setSightingSeenAt(e.target.value)}
+                        className="mt-1"
+                      />
+                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Pick the date from the calendar.</p>
+                    </div>
                     <Input placeholder="Country" value={sightingCountry} onChange={(e) => setSightingCountry(e.target.value)} />
                     <button
                       onClick={() => fillGeolocation(setSightingLat, setSightingLng)}
