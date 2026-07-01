@@ -279,7 +279,7 @@ export function AuraFindApp() {
   const [matches, setMatches] = useState<MatchResult[]>([]);
   const [latestReportId, setLatestReportId] = useState<string>("");
 
-  const [statusMessage, setStatusMessage] = useState<string>("Your private command center is ready.");
+  const [statusMessage, setStatusMessage] = useState<string>("Ready to help.");
   const [working, setWorking] = useState(false);
   const [loadingBoard, setLoadingBoard] = useState(true);
 
@@ -294,7 +294,7 @@ export function AuraFindApp() {
         setLatestReportId(reportData.items[0].id);
       }
     } catch {
-      setStatusMessage("Connection timeout. Check server host settings and refresh.");
+      setStatusMessage("Connection timed out. Please refresh and try again.");
     } finally {
       setLoadingBoard(false);
     }
@@ -355,7 +355,7 @@ export function AuraFindApp() {
 
   async function fillGeolocation(setLat: (value: string) => void, setLng: (value: string) => void) {
     if (!navigator.geolocation) {
-      setStatusMessage("Geolocation is unavailable on this browser.");
+      setStatusMessage("This browser cannot get your location.");
       return;
     }
 
@@ -364,7 +364,7 @@ export function AuraFindApp() {
         setLat(position.coords.latitude.toFixed(6));
         setLng(position.coords.longitude.toFixed(6));
       },
-      () => setStatusMessage("Location access denied. You can still enter coordinates manually."),
+      () => setStatusMessage("Location access was turned off. You can type the location yourself."),
     );
   }
 
@@ -374,7 +374,7 @@ export function AuraFindApp() {
       window.SpeechRecognition;
 
     if (!SpeechRecognition) {
-      setStatusMessage("Speech recognition is not supported in this browser.");
+      setStatusMessage("This browser does not support speech input.");
       return;
     }
 
@@ -386,11 +386,11 @@ export function AuraFindApp() {
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       const transcript = event.results[0][0].transcript;
       setReportDraft((prev) => ({ ...prev, voiceTranscript: transcript }));
-      setStatusMessage("Voice report captured and attached.");
+      setStatusMessage("Voice note saved.");
     };
 
     recognition.onerror = () => {
-      setStatusMessage("Voice capture failed, please try once more.");
+      setStatusMessage("Voice note could not be saved. Please try again.");
     };
 
     recognition.start();
@@ -440,7 +440,7 @@ export function AuraFindApp() {
     try {
       // Validate form before submission
       if (!validateReportForm()) {
-        setStatusMessage("Please fix the errors above before submitting.");
+        setStatusMessage("Please fix the errors above before sending.");
         setWorking(false);
         return;
       }
@@ -477,7 +477,7 @@ export function AuraFindApp() {
       });
 
       setLatestReportId(response.item.id);
-      setStatusMessage("Case created and indexed for biometric discovery.");
+      setStatusMessage("Report saved and ready to match.");
       setReportDraft(initialDraft);
       setReportPhotos([]);
       setReportExif(undefined);
@@ -495,7 +495,7 @@ export function AuraFindApp() {
         return;
       }
 
-      setStatusMessage("Unable to submit the case. Please try again.");
+      setStatusMessage("Could not save the report. Please try again.");
     } finally {
       setWorking(false);
     }
@@ -516,7 +516,7 @@ export function AuraFindApp() {
         }),
       });
 
-      setStatusMessage("Anonymous sighting securely queued for matching.");
+      setStatusMessage("Anonymous sighting saved and ready to check.");
       setSightingNotes("");
       setSightingSeenAt("");
       setSightingLat("");
@@ -524,7 +524,7 @@ export function AuraFindApp() {
       setSightingCountry("");
       setSightingPhotos([]);
     } catch {
-      setStatusMessage("Sighting submission failed. Please complete all required fields.");
+      setStatusMessage("Could not save the sighting. Please complete all required fields.");
     } finally {
       setWorking(false);
     }
@@ -545,7 +545,7 @@ export function AuraFindApp() {
         }),
       });
 
-      setStatusMessage("Found register entry recorded and protected.");
+      setStatusMessage("Found entry saved.");
       setFoundOrg("");
       setFoundContact("");
       setFoundNotes("");
@@ -553,7 +553,7 @@ export function AuraFindApp() {
       setFoundLng("");
       setFoundAge("");
     } catch {
-      setStatusMessage("Could not create found-register entry.");
+      setStatusMessage("Could not save the found entry.");
     } finally {
       setWorking(false);
     }
@@ -570,15 +570,15 @@ export function AuraFindApp() {
 
       setStatusMessage(
         response.potentialLinks.length
-          ? `Discover linked ${response.potentialLinks.length} similar family narratives.`
-          : "Story indexed. No immediate storyline overlap yet.",
+          ? `Found ${response.potentialLinks.length} related story or family match(es).`
+          : "Story saved. No close match yet.",
       );
 
       setDiscoverAuthor("");
       setDiscoverStory("");
       setDiscoverLocationHint("");
     } catch {
-      setStatusMessage("Discover submission failed.");
+      setStatusMessage("Could not save the story.");
     } finally {
       setWorking(false);
     }
@@ -586,7 +586,7 @@ export function AuraFindApp() {
 
   async function runMatchScan() {
     if (!latestReportId) {
-      setStatusMessage("Submit a missing person report first to run match scanning.");
+      setStatusMessage("Submit a missing person report first.");
       return;
     }
 
@@ -600,11 +600,11 @@ export function AuraFindApp() {
       setMatches(response.items);
       setStatusMessage(
         response.alertsTriggered > 0
-          ? `High-confidence alert triggered for ${response.alertsTriggered} candidates.`
-          : "Scan complete. No high-confidence threshold hit yet.",
+          ? `Alert sent for ${response.alertsTriggered} possible match(es).`
+          : "Scan complete. No strong match yet.",
       );
     } catch {
-      setStatusMessage("Match scan failed.");
+      setStatusMessage("Could not run the match check.");
     } finally {
       setWorking(false);
     }
@@ -612,7 +612,7 @@ export function AuraFindApp() {
 
   async function triggerBroadcastAndPoster() {
     if (!latestReportId) {
-      setStatusMessage("No case selected to share.");
+      setStatusMessage("No report is selected.");
       return;
     }
 
@@ -682,19 +682,19 @@ export function AuraFindApp() {
     }
   }
 
-  async function enableGeofencedPush() {
+  async function enablePushAlerts() {
     if (!("Notification" in window)) {
-      setStatusMessage("Push notifications are unavailable on this browser.");
+      setStatusMessage("This browser cannot send push alerts.");
       return;
     }
 
     const permission = await Notification.requestPermission();
     if (permission !== "granted") {
-      setStatusMessage("Push permissions were not granted.");
+      setStatusMessage("Push alerts were not allowed.");
       return;
     }
 
-    setStatusMessage("Push alerts enabled for geofenced emergency updates.");
+    setStatusMessage("Push alerts are now on.");
   }
 
   const statCards = useMemo(
@@ -723,10 +723,10 @@ export function AuraFindApp() {
         >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.22em] text-teal-700 dark:text-teal-300">AuraFind Global Network</p>
-              <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">The reunion engine for missing loved ones</h1>
+              <p className="text-xs uppercase tracking-[0.22em] text-teal-700 dark:text-teal-300">AuraFind</p>
+              <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">A simple place to report and find missing people</h1>
               <p className="mt-3 max-w-2xl text-sm text-slate-700 dark:text-slate-300">
-                Hyper-scalable serverless reporting, biometric discovery, geospatial intelligence, and compassionate action tools in one crisis-ready command center.
+                Send a report, share a sighting, check for matches, and keep everything in one easy-to-use place.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -740,13 +740,13 @@ export function AuraFindApp() {
                 onClick={() => setLowBandwidth((prev) => !prev)}
                 className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white/85 px-4 py-2 text-sm hover:bg-white dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
               >
-                <Zap className="h-4 w-4" /> {lowBandwidth ? "Bandwidth Saver: On" : "Bandwidth Saver"}
+                <Zap className="h-4 w-4" /> {lowBandwidth ? "Low data mode: On" : "Low data mode"}
               </button>
               <button
-                onClick={enableGeofencedPush}
+                onClick={enablePushAlerts}
                 className="inline-flex items-center gap-2 rounded-full bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-500"
               >
-                <BellRing className="h-4 w-4" /> Enable Geofenced Push
+                <BellRing className="h-4 w-4" /> Turn on push alerts
               </button>
               <Link
                 href="/admin"
@@ -775,9 +775,9 @@ export function AuraFindApp() {
             {[
               { key: "report", label: "Report", icon: <Send className="h-4 w-4" /> },
               { key: "sighting", label: "Sighting", icon: <Compass className="h-4 w-4" /> },
-              { key: "found", label: "Found Register", icon: <MapPin className="h-4 w-4" /> },
-              { key: "discover", label: "Discover", icon: <Trees className="h-4 w-4" /> },
-              { key: "intel", label: "AI Intel", icon: <Bot className="h-4 w-4" /> },
+              { key: "found", label: "Found list", icon: <MapPin className="h-4 w-4" /> },
+              { key: "discover", label: "Family stories", icon: <Trees className="h-4 w-4" /> },
+              { key: "intel", label: "Matches", icon: <Bot className="h-4 w-4" /> },
             ].map((item) => (
               <button
                 key={item.key}
@@ -804,7 +804,7 @@ export function AuraFindApp() {
                 </div>
               ) : reports.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-slate-300/80 bg-white/70 p-4 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300">
-                  No active cases yet. Submit a report and it will appear here immediately.
+                  No active cases yet. Send a report and it will appear here.
                 </div>
               ) : (
                 <div className="grid gap-3">
@@ -865,7 +865,7 @@ export function AuraFindApp() {
             <AnimatePresence mode="wait">
             {section === "report" && (
               <motion.div key="report" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="grid gap-6">
-                <Card title="Report a Missing Person" icon={<Send className="h-5 w-5" />}>
+                <Card title="Report a missing person" icon={<Send className="h-5 w-5" />}>
                   <div className="grid gap-3 sm:grid-cols-2">
                     {/* Missing Person Information (first) */}
                     <Input 
@@ -982,7 +982,7 @@ export function AuraFindApp() {
                       {working ? "Saving..." : "Save report"}
                     </button>
                     <button onClick={triggerBroadcastAndPoster} disabled={working} className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 dark:bg-white dark:text-slate-900">
-                      Share alert + poster
+                      Share alert and poster
                     </button>
                   </div>
                 </Card>
@@ -991,7 +991,7 @@ export function AuraFindApp() {
 
             {section === "sighting" && (
               <motion.div key="sighting" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="grid gap-6">
-                <Card title="Anonymous Sighting Pipeline" icon={<Compass className="h-5 w-5" />}>
+                <Card title="Anonymous sighting" icon={<Compass className="h-5 w-5" />}>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <Area placeholder="What did you observe?" value={sightingNotes} onChange={(e) => setSightingNotes(e.target.value)} className="min-h-24 sm:col-span-2" />
                     <Input type="datetime-local" value={sightingSeenAt} onChange={(e) => setSightingSeenAt(e.target.value)} />
@@ -1000,7 +1000,7 @@ export function AuraFindApp() {
                       onClick={() => fillGeolocation(setSightingLat, setSightingLng)}
                       className="rounded-xl border border-slate-300 px-3 py-2 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-900"
                     >
-                      Auto-fill Coordinates
+                      Fill my location
                     </button>
                     <Input placeholder="Latitude" value={sightingLat} onChange={(e) => setSightingLat(e.target.value)} />
                     <Input placeholder="Longitude" value={sightingLng} onChange={(e) => setSightingLng(e.target.value)} />
@@ -1009,7 +1009,7 @@ export function AuraFindApp() {
                     </div>
                   </div>
                   <button onClick={submitSighting} disabled={working} className="mt-4 rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-500 disabled:opacity-50">
-                    Submit Anonymous Sighting
+                    Send sighting
                   </button>
                 </Card>
               </motion.div>
@@ -1017,17 +1017,17 @@ export function AuraFindApp() {
 
             {section === "found" && (
               <motion.div key="found" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="grid gap-6">
-                <Card title="The Found Register" icon={<MapPin className="h-5 w-5" />}>
+                <Card title="Found list" icon={<MapPin className="h-5 w-5" />}>
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <Input placeholder="Hospital/Shelter/Organization" value={foundOrg} onChange={(e) => setFoundOrg(e.target.value)} />
-                    <Input placeholder="Registrar Contact" value={foundContact} onChange={(e) => setFoundContact(e.target.value)} />
-                    <Input placeholder="Estimated Age" type="number" value={foundAge} onChange={(e) => setFoundAge(e.target.value)} />
+                    <Input placeholder="Place or organization" value={foundOrg} onChange={(e) => setFoundOrg(e.target.value)} />
+                    <Input placeholder="Contact person" value={foundContact} onChange={(e) => setFoundContact(e.target.value)} />
+                    <Input placeholder="Estimated age" type="number" value={foundAge} onChange={(e) => setFoundAge(e.target.value)} />
                     <Input placeholder="Latitude" value={foundLat} onChange={(e) => setFoundLat(e.target.value)} />
                     <Input placeholder="Longitude" value={foundLng} onChange={(e) => setFoundLng(e.target.value)} />
-                    <Area placeholder="Condition, context, and identifying notes" className="sm:col-span-2 min-h-24" value={foundNotes} onChange={(e) => setFoundNotes(e.target.value)} />
+                    <Area placeholder="Condition and any useful notes" className="sm:col-span-2 min-h-24" value={foundNotes} onChange={(e) => setFoundNotes(e.target.value)} />
                   </div>
                   <button onClick={submitFound} disabled={working} className="mt-4 rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-500 disabled:opacity-50">
-                    Add to Found Register
+                    Save to found list
                   </button>
                 </Card>
               </motion.div>
@@ -1035,14 +1035,14 @@ export function AuraFindApp() {
 
             {section === "discover" && (
               <motion.div key="discover" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="grid gap-6">
-                <Card title="Discover: Kinship & Reunion Network" icon={<Trees className="h-5 w-5" />}>
+                <Card title="Family stories" icon={<Trees className="h-5 w-5" />}>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <Input placeholder="Your Name" value={discoverAuthor} onChange={(e) => setDiscoverAuthor(e.target.value)} />
-                    <Input placeholder="Location Hint (optional)" value={discoverLocationHint} onChange={(e) => setDiscoverLocationHint(e.target.value)} />
-                    <Area className="sm:col-span-2 min-h-32" placeholder="Share separation history, names, places, years, and memories..." value={discoverStory} onChange={(e) => setDiscoverStory(e.target.value)} />
+                    <Input placeholder="Place hint (optional)" value={discoverLocationHint} onChange={(e) => setDiscoverLocationHint(e.target.value)} />
+                    <Area className="sm:col-span-2 min-h-32" placeholder="Share your story, names, places, and memories..." value={discoverStory} onChange={(e) => setDiscoverStory(e.target.value)} />
                   </div>
                   <button onClick={submitDiscoverStory} disabled={working} className="mt-4 rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-500 disabled:opacity-50">
-                    Publish to Discover
+                    Save story
                   </button>
                 </Card>
               </motion.div>
@@ -1050,18 +1050,18 @@ export function AuraFindApp() {
 
             {section === "intel" && (
               <motion.div key="intel" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="grid gap-6">
-                <Card title="AI Match & Discovery Engine" icon={<Fingerprint className="h-5 w-5" />}>
+                <Card title="Match check" icon={<Fingerprint className="h-5 w-5" />}>
                   <div className="flex flex-wrap items-center gap-2">
                     <button onClick={runMatchScan} disabled={working} className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-500 disabled:opacity-50">
                       <span className="inline-flex items-center gap-2">
-                        <Search className="h-4 w-4" /> Run Probabilistic Match Scan
+                        <Search className="h-4 w-4" /> Check for matches
                       </span>
                     </button>
                     {working && <LoaderCircle className="h-4 w-4 animate-spin text-teal-600" />}
                   </div>
 
                   <div className="mt-4 space-y-2">
-                    {matches.length === 0 && <p className="text-sm text-slate-600 dark:text-slate-300">No match results yet. Run a scan after entering sightings or found records.</p>}
+                    {matches.length === 0 && <p className="text-sm text-slate-600 dark:text-slate-300">No matches yet. Add reports, sightings, or found records first.</p>}
                     {matches.map((item) => (
                       <article key={item.candidateId} className="rounded-2xl border border-slate-200 bg-white/70 p-3 dark:border-slate-800 dark:bg-slate-900/70">
                         <p className="text-sm font-semibold">
@@ -1070,14 +1070,14 @@ export function AuraFindApp() {
                         <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
                           Face {item.components.faceSimilarity}% · Geo {item.components.geoProximityScore}% · Time {item.components.timeWindowScore}%
                         </p>
-                        {item.shouldAlert && <p className="mt-1 text-xs font-semibold text-rose-600">Auto-alert threshold reached. Triggering notifier channels.</p>}
+                        {item.shouldAlert && <p className="mt-1 text-xs font-semibold text-rose-600">Strong match found. Alert sent.</p>}
                       </article>
                     ))}
                   </div>
 
                   <div className="mt-5 rounded-2xl border border-dashed border-teal-400/70 p-4 text-sm text-slate-700 dark:text-slate-200">
-                    <p className="font-semibold">Production Integrations Ready</p>
-                    <p className="mt-1">Integrate AWS Rekognition for biometric vectors, DynamoDB + S3 persistence, OpenSearch/Algolia indexing, and Twilio/Resend alerts via environment variables.</p>
+                    <p className="font-semibold">Connect other tools if needed</p>
+                    <p className="mt-1">You can connect photo checks, file storage, search, and message alerts with environment settings.</p>
                   </div>
                 </Card>
               </motion.div>
@@ -1091,7 +1091,7 @@ export function AuraFindApp() {
             <Globe className="h-4 w-4" /> {statusMessage}
           </p>
           <p className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.17em]">
-            <Zap className="h-4 w-4" /> Serverless Edge Ready
+            <Zap className="h-4 w-4" /> Works well on all devices
           </p>
         </footer>
       </div>

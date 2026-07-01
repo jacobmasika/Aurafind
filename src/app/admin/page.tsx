@@ -2,7 +2,7 @@ import { AdminPanel } from "@/components/admin-panel";
 
 export const metadata = {
   title: "AuraFind Admin",
-  description: "Delete reported missing-person cases from the AuraFind admin console.",
+  description: "Remove reported missing-person cases from the admin page.",
 };
 
 export default function AdminPage() {

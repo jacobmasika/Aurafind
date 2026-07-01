@@ -15,9 +15,9 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AuraFind | Global Missing Persons & Reunion Network",
+  title: "AuraFind | Find Missing People",
   description:
-    "Serverless emergency reporting, AI-assisted matching, and compassionate discovery workflows for reuniting missing people worldwide.",
+    "Report a missing person, share sightings, and review matches in one simple place.",
   icons: {
     icon: "/favicon.svg",
   },
